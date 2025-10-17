@@ -322,6 +322,9 @@ class MarkdownProcessor:
         html_parts = []
         in_code_block = False
         code_block_content = []
+        code_block_language = None
+        in_table = False
+        table_lines = []
         current_paragraph = []
 
         for line in lines:
@@ -335,8 +338,11 @@ class MarkdownProcessor:
                                 .replace('&', '&amp;')
                                 .replace('<', '&lt;')
                                 .replace('>', '&gt;'))
-                    html_parts.append(f'<pre><code>{code_html}</code></pre>')
+                    # Add language class if specified
+                    lang_class = f' class="language-{code_block_language}"' if code_block_language else ''
+                    html_parts.append(f'<pre><code{lang_class}>{code_html}</code></pre>')
                     code_block_content = []
+                    code_block_language = None
                     in_code_block = False
                 else:
                     # Start code block
@@ -345,12 +351,36 @@ class MarkdownProcessor:
                         if paragraph_text:
                             html_parts.append(f'<p>{MarkdownProcessor._render_inline(paragraph_text)}</p>')
                         current_paragraph = []
+                    # Extract language if specified
+                    lang = line.strip()[3:].strip()
+                    code_block_language = lang if lang else None
                     in_code_block = True
                 continue
 
             if in_code_block:
                 code_block_content.append(line)
                 continue
+
+            # Handle tables
+            if '|' in line and line.strip().startswith('|') or (line.count('|') >= 2):
+                if not in_table:
+                    # Start table
+                    if current_paragraph:
+                        paragraph_text = ' '.join(current_paragraph).strip()
+                        if paragraph_text:
+                            html_parts.append(f'<p>{MarkdownProcessor._render_inline(paragraph_text)}</p>')
+                        current_paragraph = []
+                    in_table = True
+                table_lines.append(line)
+                continue
+            elif in_table:
+                # End of table
+                table_html = MarkdownProcessor._parse_table(table_lines)
+                if table_html:
+                    html_parts.append(table_html)
+                table_lines = []
+                in_table = False
+                # Fall through to process current line
 
             # Handle blockquotes
             if line.strip().startswith('>'):
@@ -417,6 +447,12 @@ class MarkdownProcessor:
             if paragraph_text:
                 html_parts.append(f'<p>{MarkdownProcessor._render_inline(paragraph_text)}</p>')
 
+        # Finish any remaining table
+        if in_table and table_lines:
+            table_html = MarkdownProcessor._parse_table(table_lines)
+            if table_html:
+                html_parts.append(table_html)
+
         html = '\n'.join(html_parts) if html_parts else '<p></p>'
         return html
 
@@ -452,6 +488,76 @@ class MarkdownProcessor:
         text = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', text)
 
         return text
+
+    @staticmethod
+    def _parse_table(table_lines: List[str]) -> str:
+        """
+        Parse markdown table into HTML.
+
+        Args:
+            table_lines: List of table lines
+
+        Returns:
+            HTML table string
+        """
+        if not table_lines or len(table_lines) < 2:
+            return ""
+
+        # Remove empty lines
+        table_lines = [line.strip() for line in table_lines if line.strip()]
+
+        if len(table_lines) < 2:
+            return ""
+
+        # Parse header
+        header_line = table_lines[0]
+        headers = [cell.strip() for cell in header_line.split('|')]
+        headers = [h for h in headers if h]  # Remove empty cells
+
+        # Skip separator line (second line with dashes)
+        if len(table_lines) < 2:
+            return ""
+
+        # Check if second line is separator
+        separator = table_lines[1]
+        if not re.match(r'^[\s|:-]+$', separator):
+            # Not a valid table
+            return ""
+
+        # Parse data rows
+        rows = []
+        for line in table_lines[2:]:
+            cells = [cell.strip() for cell in line.split('|')]
+            cells = [c for c in cells if c]  # Remove empty cells from leading/trailing pipes
+            if cells:
+                rows.append(cells)
+
+        # Build HTML table
+        html_parts = ['<table>']
+
+        # Header
+        html_parts.append('<thead><tr>')
+        for header in headers:
+            html_parts.append(f'<th>{MarkdownProcessor._render_inline(header)}</th>')
+        html_parts.append('</tr></thead>')
+
+        # Body
+        if rows:
+            html_parts.append('<tbody>')
+            for row in rows:
+                html_parts.append('<tr>')
+                for i, cell in enumerate(row):
+                    if i < len(headers):  # Don't exceed header count
+                        html_parts.append(f'<td>{MarkdownProcessor._render_inline(cell)}</td>')
+                # Fill missing cells
+                for i in range(len(row), len(headers)):
+                    html_parts.append('<td></td>')
+                html_parts.append('</tr>')
+            html_parts.append('</tbody>')
+
+        html_parts.append('</table>')
+
+        return '\n'.join(html_parts)
 
     @staticmethod
     def escape_html(text: str) -> str:

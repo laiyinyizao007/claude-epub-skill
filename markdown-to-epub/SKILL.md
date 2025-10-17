@@ -79,19 +79,53 @@ The skill generates a downloadable EPUB file that includes:
 
 ## Markdown Elements Supported
 
-| Element | Markdown | Support |
-|---------|----------|---------|
-| Headers | `# H1` through `###### H6` | Full |
-| Bold | `**text**` or `__text__` | Full |
-| Italic | `*text*` or `_text_` | Full |
-| Links | `[text](url)` | Full |
-| Lists | `- item` or `1. item` | Full |
-| Code | ` `code` ` or code blocks | Full |
-| Tables | Markdown tables | Full |
-| Blockquotes | `> quote` | Full |
-| Horizontal rule | `---` or `***` | Full |
+| Element | Markdown | Support | Notes |
+|---------|----------|---------|-------|
+| Headers | `# H1` through `###### H6` | Full | Auto TOC generation |
+| Bold | `**text**` or `__text__` | Full | |
+| Italic | `*text*` or `_text_` | Full | |
+| Links | `[text](url)` | Full | Clickable in ebooks |
+| Lists | `- item` or `1. item` | Full | Nested lists supported |
+| Code blocks | ` ```language ` | **Enhanced** | Syntax highlighting ready, monospace fonts |
+| Inline code | ` `code` ` | **Enhanced** | Styled background, borders |
+| Tables | Markdown tables | **Enhanced** | Styled headers, alternating rows |
+| Blockquotes | `> quote` | Full | Styled with left border |
+| Horizontal rule | `---` or `***` | Full | |
 
 ## Advanced Features
+
+### Enhanced Code Block Support
+
+Code blocks are beautifully formatted with:
+- **Premium monospace fonts**: SF Mono, Monaco, Fira Code, Consolas, and more
+- **Styled backgrounds**: Subtle gray background with blue accent border
+- **Language detection**: Specify language after ` ``` ` for future syntax highlighting
+- **Proper escaping**: HTML characters are safely escaped
+- **Overflow handling**: Horizontal scrolling for long lines
+
+Example:
+```python
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+```
+
+### Enhanced Table Support
+
+Tables are rendered with professional styling:
+- **Styled headers**: Blue background with white text
+- **Alternating rows**: Zebra striping for readability
+- **Cell padding**: Comfortable spacing for easy reading
+- **Inline formatting**: Code, bold, italic, and links work in cells
+- **Responsive**: Tables adapt to different screen sizes
+
+Example:
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Headers | ✓ | Full support |
+| Code | ✓ | Enhanced styling |
+| Tables | ✓ | Professional layout |
 
 ### Custom Title and Metadata
 You can specify EPUB metadata:

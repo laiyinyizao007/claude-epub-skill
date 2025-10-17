@@ -17,12 +17,15 @@ This skill transforms markdown content into EPUB3 format ebooks that work across
 - Automatic chapter detection from H1 headers
 - Automatic section parsing from H2-H6 headers
 - Full markdown formatting support (bold, italic, links, lists, code blocks, etc.)
+- **Enhanced code blocks** with premium monospace fonts and syntax highlighting support
+- **Professional tables** with styled headers and alternating row colors
 
 📚 **EPUB Generation**
 - EPUB3 standard compliance
 - Automatic table of contents with proper navigation
 - Responsive, device-agnostic styling
 - Proper document structure and metadata
+- Beautiful code formatting for technical documents
 
 🎯 **Smart Input Handling**
 - Accept raw markdown text directly
@@ -109,17 +112,19 @@ Or provide a file path:
 
 ## Markdown Support
 
-| Element | Example | Support |
-|---------|---------|---------|
-| Headers | `# H1` through `###### H6` | Full |
-| Bold | `**bold**` or `__bold__` | Full |
-| Italic | `*italic*` or `_italic_` | Full |
-| Links | `[text](url)` | Full |
-| Lists | `- item` or `1. item` | Full |
-| Code | `` `code` `` or ` ``` ` ` | Full |
-| Blockquotes | `> quote` | Full |
-| Horizontal Rule | `---` or `***` | Full |
-| Paragraphs | Text with blank lines | Full |
+| Element | Example | Support | Styling |
+|---------|---------|---------|---------|
+| Headers | `# H1` through `###### H6` | Full | Optimized sizes for e-readers |
+| Bold | `**bold**` or `__bold__` | Full | Strong emphasis |
+| Italic | `*italic*` or `_italic_` | Full | Subtle emphasis |
+| Links | `[text](url)` | Full | Clickable |
+| Lists | `- item` or `1. item` | Full | Proper indentation |
+| Code Blocks | ` ```language ` | **Enhanced** | Monospace fonts, styled backgrounds, blue accent |
+| Inline Code | `` `code` `` | **Enhanced** | Gray background, subtle border |
+| Tables | Markdown tables | **Enhanced** | Blue headers, zebra striping, responsive |
+| Blockquotes | `> quote` | Full | Blue left border |
+| Horizontal Rule | `---` or `***` | Full | Subtle divider |
+| Paragraphs | Text with blank lines | Full | Justified text |
 
 ## YAML Frontmatter Support
 

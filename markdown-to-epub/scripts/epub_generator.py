@@ -80,21 +80,33 @@ class EPUBGenerator:
     }
 
     code, pre {
-        font-family: 'Courier New', monospace;
-        background-color: #f4f4f4;
-        padding: 0.2em 0.4em;
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+        font-size: 0.9em;
+    }
+
+    code {
+        background-color: #f5f5f5;
+        padding: 0.15em 0.4em;
         border-radius: 3px;
+        border: 1px solid #e0e0e0;
     }
 
     pre {
+        background-color: #f8f8f8;
+        border: 1px solid #e0e0e0;
+        border-left: 3px solid #0066cc;
         padding: 1em;
         overflow-x: auto;
         margin: 1em 0;
+        border-radius: 4px;
+        line-height: 1.4;
     }
 
     pre code {
         padding: 0;
         background-color: transparent;
+        border: none;
+        font-size: 0.95em;
     }
 
     blockquote {
@@ -117,18 +129,40 @@ class EPUBGenerator:
     table {
         border-collapse: collapse;
         width: 100%;
-        margin: 1em 0;
+        margin: 1.5em 0;
+        font-size: 0.95em;
+        border: 1px solid #ddd;
     }
 
-    th, td {
-        border: 1px solid #ddd;
-        padding: 0.75em;
-        text-align: left;
+    thead {
+        background-color: #0066cc;
+        color: white;
     }
 
     th {
-        background-color: #f4f4f4;
+        padding: 0.75em 1em;
+        text-align: left;
         font-weight: bold;
+        border: 1px solid #0052a3;
+    }
+
+    td {
+        padding: 0.65em 1em;
+        border: 1px solid #ddd;
+        text-align: left;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+
+    tbody tr:hover {
+        background-color: #f0f0f0;
+    }
+
+    /* Code in table cells */
+    td code, th code {
+        font-size: 0.85em;
     }
 
     hr {
