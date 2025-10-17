@@ -108,7 +108,120 @@ open test.epub  # macOS - opens in default EPUB reader
 
 ## Publishing the Skill
 
-See `publish.sh` for publishing workflow.
+### Local Testing and Building
+
+```bash
+# Run local publish script to test packaging
+bash publish.sh
+
+# This creates dist/markdown-to-epub-skill.zip
+```
+
+### Release Process
+
+This project uses GitHub Actions for automated releases with changelog management.
+
+#### 1. Add Changes to Changelog
+
+Use the changelog helper script to manage entries:
+
+```bash
+# Add a new feature
+python changelog-helper.py add "Support for nested lists in markdown" --type added
+
+# Add a bug fix
+python changelog-helper.py add "Fix table rendering in Apple Books" --type fixed
+
+# Add a breaking change
+python changelog-helper.py add "Update minimum Python version to 3.9" --type changed
+
+# Show current unreleased changes
+python changelog-helper.py show
+```
+
+Available change types:
+- `added` - New features
+- `changed` - Changes to existing functionality
+- `deprecated` - Soon-to-be removed features
+- `removed` - Removed features
+- `fixed` - Bug fixes
+- `security` - Security improvements
+
+#### 2. Prepare Release
+
+When ready to release, prepare the changelog:
+
+```bash
+# Move unreleased changes to new version
+python changelog-helper.py release 1.1.0
+
+# This will:
+# - Create a new version section in CHANGELOG.md with today's date
+# - Move all unreleased entries to that version
+# - Clear the unreleased section
+# - Update version comparison links
+```
+
+#### 3. Commit and Trigger Release
+
+```bash
+# Commit the changelog
+git add CHANGELOG.md
+git commit -m "chore: prepare release 1.1.0"
+git push
+
+# Trigger the GitHub Action release workflow:
+# 1. Go to Actions tab on GitHub
+# 2. Select "Release" workflow
+# 3. Click "Run workflow"
+# 4. Enter version number (e.g., 1.1.0)
+# 5. Optionally mark as pre-release
+```
+
+#### 4. Automated Release Steps
+
+The GitHub Action will automatically:
+1. Validate version format (semver)
+2. Check that version exists in CHANGELOG.md
+3. Extract release notes from changelog
+4. Run tests to ensure quality
+5. Build the skill package (zip file)
+6. Create GitHub release with tag (e.g., v1.1.0)
+7. Attach the zip file as a release artifact
+
+#### Manual Release (Alternative)
+
+If needed, you can create releases manually:
+
+```bash
+# Build the package
+bash publish.sh
+
+# Create git tag
+git tag -a v1.1.0 -m "Release version 1.1.0"
+git push origin v1.1.0
+
+# Upload dist/markdown-to-epub-skill.zip to GitHub release manually
+```
+
+### Version Numbering
+
+Follow [Semantic Versioning](https://semver.org/):
+- **MAJOR** (1.0.0 → 2.0.0): Breaking changes
+- **MINOR** (1.0.0 → 1.1.0): New features, backwards compatible
+- **PATCH** (1.0.0 → 1.0.1): Bug fixes, backwards compatible
+
+### Pre-releases
+
+For beta/RC versions:
+```bash
+# Prepare pre-release
+python changelog-helper.py release 2.0.0-beta.1
+
+# Mark as pre-release in GitHub Action
+# version: 2.0.0-beta.1
+# prerelease: true (checked)
+```
 
 ## Resources
 
