@@ -24,13 +24,14 @@ class EPUBGenerator:
     DEFAULT_CSS = """
     body {
         font-family: Georgia, serif;
-        line-height: 1.6;
+        font-size: 100%;
+        line-height: 1.5;
         margin: 0;
         padding: 1em;
     }
 
     h1 {
-        font-size: 1.5em;
+        font-size: 1.4em;
         font-weight: bold;
         margin: 1.5em 0 0.75em 0;
         color: #1a1a1a;
@@ -38,21 +39,21 @@ class EPUBGenerator:
     }
 
     h2 {
-        font-size: 1.3em;
+        font-size: 1.2em;
         font-weight: bold;
         margin: 1.25em 0 0.5em 0;
         color: #2c3e50;
     }
 
     h3 {
-        font-size: 1.15em;
+        font-size: 1.1em;
         font-weight: bold;
         margin: 1em 0 0.5em 0;
         color: #34495e;
     }
 
     h4, h5, h6 {
-        font-size: 1.05em;
+        font-size: 1em;
         font-weight: bold;
         margin: 0.75em 0 0.5em 0;
     }
@@ -60,6 +61,7 @@ class EPUBGenerator:
     p {
         margin: 0.75em 0;
         text-align: justify;
+        font-size: 1em;
     }
 
     a {
@@ -81,7 +83,7 @@ class EPUBGenerator:
 
     code, pre {
         font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
-        font-size: 0.9em;
+        font-size: 0.75em;
     }
 
     code {
@@ -95,18 +97,21 @@ class EPUBGenerator:
         background-color: #f8f8f8;
         border: 1px solid #e0e0e0;
         border-left: 3px solid #0066cc;
-        padding: 1em;
+        padding: 0.8em;
         overflow-x: auto;
         margin: 1em 0;
         border-radius: 4px;
-        line-height: 1.4;
+        line-height: 1.3;
+        tab-size: 2;
+        -moz-tab-size: 2;
     }
 
     pre code {
         padding: 0;
         background-color: transparent;
         border: none;
-        font-size: 0.95em;
+        font-size: 1em;
+        line-height: 1.3;
     }
 
     blockquote {
