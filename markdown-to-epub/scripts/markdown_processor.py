@@ -333,14 +333,11 @@ class MarkdownProcessor:
                 if in_code_block:
                     # End code block
                     code_html = '\n'.join(code_block_content)
-                    # Escape HTML in code
-                    code_html = (code_html
-                                .replace('&', '&amp;')
-                                .replace('<', '&lt;')
-                                .replace('>', '&gt;'))
-                    # Add language class if specified
-                    lang_class = f' class="language-{code_block_language}"' if code_block_language else ''
-                    html_parts.append(f'<pre><code{lang_class}>{code_html}</code></pre>')
+                    # Add line numbers and syntax highlighting
+                    code_html = MarkdownProcessor._add_line_numbers_and_highlighting(
+                        code_html, code_block_language
+                    )
+                    html_parts.append(code_html)
                     code_block_content = []
                     code_block_language = None
                     in_code_block = False
@@ -568,3 +565,90 @@ class MarkdownProcessor:
                 .replace('>', '&gt;')
                 .replace('"', '&quot;')
                 .replace("'", '&#39;'))
+
+    @staticmethod
+    def _add_line_numbers_and_highlighting(code: str, language: Optional[str] = None) -> str:
+        """
+        Add line numbers and basic syntax highlighting to code block.
+
+        Args:
+            code: Raw code string
+            language: Programming language identifier
+
+        Returns:
+            HTML string with line numbers and syntax highlighting
+        """
+        # Escape HTML first
+        code = (code
+                .replace('&', '&amp;')
+                .replace('<', '&lt;')
+                .replace('>', '&gt;'))
+
+        lines = code.split('\n')
+        html_lines = []
+
+        for i, line in enumerate(lines, 1):
+            # Apply basic syntax highlighting
+            highlighted_line = MarkdownProcessor._apply_syntax_highlighting(line, language)
+
+            # Add line number and content
+            html_lines.append(
+                f'<span class="line-number">{i:3d}</span>'
+                f'<span class="line-content">{highlighted_line}</span>'
+            )
+
+        # Build final HTML
+        lang_class = f' language-{language}' if language else ''
+        return f'<pre class="code-block{lang_class}"><code>{"".join(html_lines)}</code></pre>'
+
+    @staticmethod
+    def _apply_syntax_highlighting(line: str, language: Optional[str] = None) -> str:
+        """
+        Apply basic syntax highlighting to a line of code.
+
+        Args:
+            line: Single line of code (already HTML-escaped)
+            language: Programming language identifier
+
+        Returns:
+            HTML string with syntax highlighting spans
+        """
+        if not line.strip():
+            return '\n'
+
+        # Define common syntax patterns
+        # Comments
+        if language in ('python', 'javascript', 'java', 'go', 'rust', 'typescript'):
+            # Python/JS style comments
+            if language == 'python' and '#' in line:
+                parts = line.split('#', 1)
+                if len(parts) == 2:
+                    line = f'{parts[0]}<span class="syn-comment">#{parts[1]}</span>'
+            elif language in ('javascript', 'java', 'go', 'rust', 'typescript', 'jsx') and '//' in line:
+                parts = line.split('//', 1)
+                if len(parts) == 2:
+                    line = f'{parts[0]}<span class="syn-comment">//{parts[1]}</span>'
+
+        # Strings (basic - just handle quotes at start/end or common patterns)
+        line = re.sub(r'(["\'])([^"\']*)\1', r'<span class="syn-string">\1\2\1</span>', line)
+        line = re.sub(r'(f["\'])([^"\']*)\1', r'<span class="syn-string">\1\2\1</span>', line)
+
+        # Keywords (common across languages)
+        keywords = [
+            'def', 'class', 'if', 'else', 'elif', 'for', 'while', 'return', 'import', 'from',
+            'function', 'const', 'let', 'var', 'async', 'await', 'try', 'catch', 'throw',
+            'public', 'private', 'static', 'void', 'int', 'string', 'bool', 'SELECT', 'FROM',
+            'WHERE', 'JOIN', 'GROUP', 'ORDER', 'BY', 'CREATE', 'TABLE', 'INSERT', 'UPDATE',
+            'package', 'func', 'type', 'interface', 'struct', 'go', 'chan', 'use', 'impl',
+            'fn', 'mut', 'pub', 'trait', 'enum'
+        ]
+
+        for keyword in keywords:
+            # Match whole words only
+            pattern = r'\b(' + re.escape(keyword) + r')\b'
+            line = re.sub(pattern, r'<span class="syn-keyword">\1</span>', line, flags=re.IGNORECASE)
+
+        # Numbers
+        line = re.sub(r'\b(\d+\.?\d*)\b', r'<span class="syn-number">\1</span>', line)
+
+        return line + '\n'

@@ -114,6 +114,43 @@ class EPUBGenerator:
         line-height: 1.3;
     }
 
+    /* Line numbers in code blocks */
+    .line-number {
+        display: inline-block;
+        width: 3em;
+        text-align: right;
+        padding-right: 1em;
+        color: #999;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        border-right: 1px solid #ddd;
+        margin-right: 0.8em;
+    }
+
+    .line-content {
+        display: inline;
+    }
+
+    /* Syntax highlighting */
+    .syn-keyword {
+        color: #0066cc;
+        font-weight: 600;
+    }
+
+    .syn-string {
+        color: #22863a;
+    }
+
+    .syn-comment {
+        color: #6a737d;
+        font-style: italic;
+    }
+
+    .syn-number {
+        color: #005cc5;
+    }
+
     blockquote {
         border-left: 4px solid #0066cc;
         margin: 1em 0;
