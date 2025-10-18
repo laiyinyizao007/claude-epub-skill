@@ -47,10 +47,26 @@ jobs:
         run: |
           # Extract the section for this version from CHANGELOG.md
           VERSION="${{ inputs.version }}"
-          CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[/{if(/## \[/ && !/## \[$VERSION\]/)exit;print}" CHANGELOG.md | sed '1d;$d')
 
-          # Save to file for GitHub release
-          echo "$CHANGELOG" > release-notes.md
+          # Use awk to extract changelog between this version and the next version marker
+          awk "/## \[$VERSION\]/,/## \[/{
+            if(/## \[/ && !/## \[$VERSION\]/) exit;
+            if(!/## \[$VERSION\]/) print
+          }" CHANGELOG.md > release-notes.md
+
+          # Add a separator and link to full changelog
+          echo "" >> release-notes.md
+          echo "---" >> release-notes.md
+          echo "" >> release-notes.md
+
+          # Get previous version for comparison link (if exists)
+          PREV_VERSION=$(grep -oP '## \[\K[0-9]+\.[0-9]+\.[0-9]+(?=\])' CHANGELOG.md | grep -A1 "$VERSION" | tail -1)
+
+          if [ -n "$PREV_VERSION" ] && [ "$PREV_VERSION" != "$VERSION" ]; then
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/v${PREV_VERSION}...v${VERSION}" >> release-notes.md
+          else
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/commits/v${VERSION}" >> release-notes.md
+          fi
 
           # Output for verification
           echo "📝 Release notes:"
