@@ -24,14 +24,14 @@ class EPUBGenerator:
     DEFAULT_CSS = """
     body {
         font-family: Georgia, serif;
-        font-size: 85%;
+        font-size: 75%;
         line-height: 1.5;
         margin: 0;
         padding: 1em;
     }
 
     h1 {
-        font-size: 1.35em;
+        font-size: 1.3em;
         font-weight: bold;
         margin: 1.5em 0 0.75em 0;
         color: #1a1a1a;
@@ -39,21 +39,21 @@ class EPUBGenerator:
     }
 
     h2 {
-        font-size: 1.18em;
+        font-size: 1.15em;
         font-weight: bold;
         margin: 1.25em 0 0.5em 0;
         color: #2c3e50;
     }
 
     h3 {
-        font-size: 1.08em;
+        font-size: 1.05em;
         font-weight: bold;
         margin: 1em 0 0.5em 0;
         color: #34495e;
     }
 
     h4, h5, h6 {
-        font-size: 0.98em;
+        font-size: 0.95em;
         font-weight: bold;
         margin: 0.75em 0 0.5em 0;
     }
@@ -181,7 +181,7 @@ class EPUBGenerator:
         border-collapse: collapse;
         width: 100%;
         margin: 1.5em 0;
-        font-size: 0.95em;
+        font-size: 0.88em;
         border: 1px solid #ddd;
     }
 
