@@ -13,6 +13,15 @@ from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
+try:
+    from pygments import highlight
+    from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
+    from pygments.formatters import HtmlFormatter
+    from pygments.util import ClassNotFound
+    PYGMENTS_AVAILABLE = True
+except ImportError:
+    PYGMENTS_AVAILABLE = False
+
 
 class HeaderLevel(Enum):
     """Header hierarchy levels."""
@@ -589,7 +598,7 @@ class MarkdownProcessor:
     @staticmethod
     def _add_line_numbers_and_highlighting(code: str, language: Optional[str] = None) -> str:
         """
-        Add line numbers and basic syntax highlighting to code block.
+        Add line numbers and syntax highlighting to code block using Pygments.
 
         Args:
             code: Raw code string
@@ -598,7 +607,61 @@ class MarkdownProcessor:
         Returns:
             HTML string with line numbers and syntax highlighting
         """
-        # Escape HTML first
+        if PYGMENTS_AVAILABLE and language:
+            try:
+                # Get the appropriate lexer for the language
+                lexer = get_lexer_by_name(language, stripall=False)
+
+                # Use Pygments to tokenize and highlight
+                from pygments import lex
+                from pygments.token import Token
+
+                lines = code.split('\n')
+                html_lines = []
+
+                for line_num, line in enumerate(lines, 1):
+                    # Tokenize this line
+                    tokens = list(lex(line + '\n', lexer))
+                    highlighted_parts = []
+
+                    for token_type, value in tokens:
+                        # Skip the newline at the end
+                        if value == '\n':
+                            continue
+
+                        # Escape HTML in the value
+                        value = (value
+                                .replace('&', '&amp;')
+                                .replace('<', '&lt;')
+                                .replace('>', '&gt;'))
+
+                        # Map Pygments token types to our CSS classes
+                        css_class = MarkdownProcessor._get_token_css_class(token_type)
+
+                        if css_class:
+                            highlighted_parts.append(f'<span class="{css_class}">{value}</span>')
+                        else:
+                            highlighted_parts.append(value)
+
+                    # Add line number and content
+                    html_lines.append(
+                        f'<span class="line-number">{line_num:3d}</span>'
+                        f'<span class="line-content">{"".join(highlighted_parts)}\n</span>'
+                    )
+
+                # Build final HTML
+                safe_lang = re.sub(r'[^a-zA-Z0-9_-]', '', language)
+                lang_class = f' language-{safe_lang}' if safe_lang else ''
+                return f'<pre class="code-block{lang_class}"><code>{"".join(html_lines)}</code></pre>'
+
+            except ClassNotFound:
+                # Language not found, fall back to plain text
+                pass
+            except Exception:
+                # Any other error, fall back to plain text
+                pass
+
+        # Fallback: no syntax highlighting, just line numbers and escaping
         code = (code
                 .replace('&', '&amp;')
                 .replace('<', '&lt;')
@@ -608,19 +671,13 @@ class MarkdownProcessor:
         html_lines = []
 
         for i, line in enumerate(lines, 1):
-            # Apply basic syntax highlighting
-            highlighted_line = MarkdownProcessor._apply_syntax_highlighting(line, language)
-
-            # Add line number and content
             html_lines.append(
                 f'<span class="line-number">{i:3d}</span>'
-                f'<span class="line-content">{highlighted_line}</span>'
+                f'<span class="line-content">{line}\n</span>'
             )
 
         # Build final HTML
-        # Ensure language identifier is XML-safe
         if language:
-            # Remove any non-alphanumeric characters except hyphen and underscore
             safe_lang = re.sub(r'[^a-zA-Z0-9_-]', '', language)
             lang_class = f' language-{safe_lang}' if safe_lang else ''
         else:
@@ -629,104 +686,31 @@ class MarkdownProcessor:
         return f'<pre class="code-block{lang_class}"><code>{"".join(html_lines)}</code></pre>'
 
     @staticmethod
-    def _apply_syntax_highlighting(line: str, language: Optional[str] = None) -> str:
+    def _get_token_css_class(token_type) -> Optional[str]:
         """
-        Apply basic syntax highlighting to a line of code.
+        Map Pygments token types to our CSS classes.
 
         Args:
-            line: Single line of code (already HTML-escaped)
-            language: Programming language identifier
+            token_type: Pygments token type
 
         Returns:
-            HTML string with syntax highlighting spans
+            CSS class name or None
         """
-        if not line.strip():
-            return '\n'
+        from pygments.token import Token
 
-        # Since line is already HTML-escaped, we need to work with &lt; &gt; &amp; etc.
-        # We'll use a safer approach: mark positions and rebuild
+        # Map token types to our simpler CSS classes
+        if token_type in Token.Keyword:
+            return 'syn-keyword'
+        elif token_type in Token.String:
+            return 'syn-string'
+        elif token_type in Token.Comment:
+            return 'syn-comment'
+        elif token_type in Token.Number:
+            return 'syn-number'
+        elif token_type in Token.Name.Function:
+            return 'syn-function'
+        elif token_type in Token.Name.Class:
+            return 'syn-class'
+        else:
+            return None
 
-        original_line = line
-
-        # Comments (do these first as they should override other highlighting)
-        # BUT be careful not to match // inside strings or URLs
-        if language in ('python', 'javascript', 'java', 'go', 'rust', 'typescript', 'jsx', 'sql', 'bash', 'sh'):
-            if language == 'python' and '#' in line:
-                # Find first unescaped # (not &#)
-                # Also skip # inside strings
-                idx = 0
-                in_string = False
-                string_char = None
-                while idx < len(line):
-                    char = line[idx]
-
-                    # Track string state
-                    if char in ('"', "'") and (idx == 0 or line[idx-1] != '\\'):
-                        # Check if it's &quot; or &#39; (escaped)
-                        if line[idx-5:idx+1] == '&quot;' or line[idx-5:idx+1] == '&#39;':
-                            idx += 1
-                            continue
-                        if in_string and char == string_char:
-                            in_string = False
-                        elif not in_string:
-                            in_string = True
-                            string_char = char
-
-                    if char == '#' and not in_string:
-                        # Check if it's not part of &#xx; entity
-                        if idx > 0 and line[idx-1:idx] == '&':
-                            idx += 1
-                            continue
-                        # Found a real comment
-                        line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
-                        return line + '\n'
-                    idx += 1
-
-            elif language in ('javascript', 'java', 'go', 'rust', 'typescript', 'jsx') and '//' in line:
-                # Don't match // in URLs (preceded by :) or inside strings
-                idx = line.find('//')
-                while idx != -1:
-                    # Check if it's preceded by : (URL) or http/https
-                    if idx > 0 and line[idx-1] == ':':
-                        idx = line.find('//', idx + 2)
-                        continue
-                    # Check if it's inside a string (look for &quot; before and after)
-                    # Simple heuristic: if there's an odd number of &quot; before this position, we're in a string
-                    quote_count = line[:idx].count('&quot;')
-                    if quote_count % 2 == 1:
-                        idx = line.find('//', idx + 2)
-                        continue
-                    # Found a real comment
-                    line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
-                    return line + '\n'
-
-            elif language in ('sql',) and '--' in line:
-                idx = line.find('--')
-                if idx != -1:
-                    line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
-                    return line + '\n'
-
-        # Strings - look for &quot; (escaped quotes)
-        # Match &quot;...&quot; pattern
-        line = re.sub(r'(&quot;[^&]*&quot;)', r'<span class="syn-string">\1</span>', line)
-        line = re.sub(r"(&#39;[^&]*&#39;)", r'<span class="syn-string">\1</span>', line)
-
-        # Keywords (common across languages) - only if not already in a span
-        keywords = [
-            'def', 'class', 'if', 'else', 'elif', 'for', 'while', 'return', 'import', 'from',
-            'function', 'const', 'let', 'var', 'async', 'await', 'try', 'catch', 'throw',
-            'public', 'private', 'static', 'void', 'int', 'string', 'bool', 'SELECT', 'FROM',
-            'WHERE', 'JOIN', 'GROUP', 'ORDER', 'BY', 'CREATE', 'TABLE', 'INSERT', 'UPDATE',
-            'package', 'func', 'type', 'interface', 'struct', 'go', 'chan', 'use', 'impl',
-            'fn', 'mut', 'pub', 'trait', 'enum', 'echo', 'set'
-        ]
-
-        for keyword in keywords:
-            # Match whole words only, not inside existing spans
-            pattern = r'\b(' + re.escape(keyword) + r')\b(?![^<]*>)'
-            line = re.sub(pattern, r'<span class="syn-keyword">\1</span>', line, flags=re.IGNORECASE)
-
-        # Numbers - simple numeric literals
-        line = re.sub(r'\b(\d+\.?\d*)\b(?![^<]*>)', r'<span class="syn-number">\1</span>', line)
-
-        return line + '\n'

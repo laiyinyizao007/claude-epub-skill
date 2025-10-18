@@ -117,22 +117,22 @@ class EPUBGenerator:
     /* Line numbers in code blocks */
     .line-number {
         display: inline-block;
-        width: 2.5em;
+        width: 2.2em;
         text-align: right;
-        padding-right: 0.5em;
+        padding-right: 0.3em;
         color: #999;
         user-select: none;
         -webkit-user-select: none;
         -moz-user-select: none;
         border-right: 1px solid #ddd;
-        margin-right: 0.5em;
+        margin-right: 0.4em;
     }
 
     .line-content {
         display: inline;
     }
 
-    /* Syntax highlighting */
+    /* Syntax highlighting (Pygments-based) */
     .syn-keyword {
         color: #0066cc;
         font-weight: 600;
@@ -149,6 +149,15 @@ class EPUBGenerator:
 
     .syn-number {
         color: #005cc5;
+    }
+
+    .syn-function {
+        color: #6f42c1;
+    }
+
+    .syn-class {
+        color: #d73a49;
+        font-weight: 600;
     }
 
     blockquote {
