@@ -178,12 +178,23 @@ class MarkdownProcessor:
         Returns:
             List of Chapter objects
         """
-        # Split by H1 headers
+        # First, remove code blocks to avoid matching headers inside them
+        # We'll use a placeholder to mark where code blocks were
+        code_blocks = []
+        code_block_pattern = r'```[^\n]*\n.*?```'
+
+        def save_code_block(match):
+            code_blocks.append(match.group(0))
+            return f'\n__CODE_BLOCK_{len(code_blocks)-1}__\n'
+
+        content_no_code = re.sub(code_block_pattern, save_code_block, content, flags=re.DOTALL)
+
+        # Split by H1 headers (now safe from code blocks)
         h1_pattern = r'^# (.+)$'
         chapters = []
 
-        # Find all H1 headers and their positions
-        h1_matches = list(re.finditer(h1_pattern, content, re.MULTILINE))
+        # Find all H1 headers and their positions in content WITHOUT code blocks
+        h1_matches = list(re.finditer(h1_pattern, content_no_code, re.MULTILINE))
 
         if not h1_matches:
             # No chapters, treat entire content as single chapter
@@ -197,17 +208,26 @@ class MarkdownProcessor:
             return chapters
 
         # Process each chapter
+        # We need to map positions from content_no_code back to original content
         for i, match in enumerate(h1_matches):
             title = match.group(1).strip()
-            start = match.end()
+            start_no_code = match.end()
 
             # Find next H1 or end of content
             if i + 1 < len(h1_matches):
-                end = h1_matches[i + 1].start()
+                end_no_code = h1_matches[i + 1].start()
             else:
-                end = len(content)
+                end_no_code = len(content_no_code)
 
-            chapter_content = content[start:end].rstrip()
+            # Get the chapter content from content_no_code
+            chapter_content_no_code = content_no_code[start_no_code:end_no_code]
+
+            # Restore code blocks
+            def restore_code_block(match):
+                idx = int(match.group(1))
+                return code_blocks[idx]
+
+            chapter_content = re.sub(r'__CODE_BLOCK_(\d+)__', restore_code_block, chapter_content_no_code).rstrip()
 
             # Parse sections within this chapter
             sections = self._parse_sections(chapter_content, 2)
