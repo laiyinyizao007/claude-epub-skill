@@ -598,7 +598,14 @@ class MarkdownProcessor:
             )
 
         # Build final HTML
-        lang_class = f' language-{language}' if language else ''
+        # Ensure language identifier is XML-safe
+        if language:
+            # Remove any non-alphanumeric characters except hyphen and underscore
+            safe_lang = re.sub(r'[^a-zA-Z0-9_-]', '', language)
+            lang_class = f' language-{safe_lang}' if safe_lang else ''
+        else:
+            lang_class = ''
+
         return f'<pre class="code-block{lang_class}"><code>{"".join(html_lines)}</code></pre>'
 
     @staticmethod
@@ -616,39 +623,90 @@ class MarkdownProcessor:
         if not line.strip():
             return '\n'
 
-        # Define common syntax patterns
-        # Comments
-        if language in ('python', 'javascript', 'java', 'go', 'rust', 'typescript'):
-            # Python/JS style comments
+        # Since line is already HTML-escaped, we need to work with &lt; &gt; &amp; etc.
+        # We'll use a safer approach: mark positions and rebuild
+
+        original_line = line
+
+        # Comments (do these first as they should override other highlighting)
+        # BUT be careful not to match // inside strings or URLs
+        if language in ('python', 'javascript', 'java', 'go', 'rust', 'typescript', 'jsx', 'sql', 'bash', 'sh'):
             if language == 'python' and '#' in line:
-                parts = line.split('#', 1)
-                if len(parts) == 2:
-                    line = f'{parts[0]}<span class="syn-comment">#{parts[1]}</span>'
+                # Find first unescaped # (not &#)
+                # Also skip # inside strings
+                idx = 0
+                in_string = False
+                string_char = None
+                while idx < len(line):
+                    char = line[idx]
+
+                    # Track string state
+                    if char in ('"', "'") and (idx == 0 or line[idx-1] != '\\'):
+                        # Check if it's &quot; or &#39; (escaped)
+                        if line[idx-5:idx+1] == '&quot;' or line[idx-5:idx+1] == '&#39;':
+                            idx += 1
+                            continue
+                        if in_string and char == string_char:
+                            in_string = False
+                        elif not in_string:
+                            in_string = True
+                            string_char = char
+
+                    if char == '#' and not in_string:
+                        # Check if it's not part of &#xx; entity
+                        if idx > 0 and line[idx-1:idx] == '&':
+                            idx += 1
+                            continue
+                        # Found a real comment
+                        line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
+                        return line + '\n'
+                    idx += 1
+
             elif language in ('javascript', 'java', 'go', 'rust', 'typescript', 'jsx') and '//' in line:
-                parts = line.split('//', 1)
-                if len(parts) == 2:
-                    line = f'{parts[0]}<span class="syn-comment">//{parts[1]}</span>'
+                # Don't match // in URLs (preceded by :) or inside strings
+                idx = line.find('//')
+                while idx != -1:
+                    # Check if it's preceded by : (URL) or http/https
+                    if idx > 0 and line[idx-1] == ':':
+                        idx = line.find('//', idx + 2)
+                        continue
+                    # Check if it's inside a string (look for &quot; before and after)
+                    # Simple heuristic: if there's an odd number of &quot; before this position, we're in a string
+                    quote_count = line[:idx].count('&quot;')
+                    if quote_count % 2 == 1:
+                        idx = line.find('//', idx + 2)
+                        continue
+                    # Found a real comment
+                    line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
+                    return line + '\n'
 
-        # Strings (basic - just handle quotes at start/end or common patterns)
-        line = re.sub(r'(["\'])([^"\']*)\1', r'<span class="syn-string">\1\2\1</span>', line)
-        line = re.sub(r'(f["\'])([^"\']*)\1', r'<span class="syn-string">\1\2\1</span>', line)
+            elif language in ('sql',) and '--' in line:
+                idx = line.find('--')
+                if idx != -1:
+                    line = f'{line[:idx]}<span class="syn-comment">{line[idx:]}</span>'
+                    return line + '\n'
 
-        # Keywords (common across languages)
+        # Strings - look for &quot; (escaped quotes)
+        # Match &quot;...&quot; pattern
+        line = re.sub(r'(&quot;[^&]*&quot;)', r'<span class="syn-string">\1</span>', line)
+        line = re.sub(r"(&#39;[^&]*&#39;)", r'<span class="syn-string">\1</span>', line)
+
+        # Keywords (common across languages) - only if not already in a span
         keywords = [
             'def', 'class', 'if', 'else', 'elif', 'for', 'while', 'return', 'import', 'from',
             'function', 'const', 'let', 'var', 'async', 'await', 'try', 'catch', 'throw',
             'public', 'private', 'static', 'void', 'int', 'string', 'bool', 'SELECT', 'FROM',
             'WHERE', 'JOIN', 'GROUP', 'ORDER', 'BY', 'CREATE', 'TABLE', 'INSERT', 'UPDATE',
             'package', 'func', 'type', 'interface', 'struct', 'go', 'chan', 'use', 'impl',
-            'fn', 'mut', 'pub', 'trait', 'enum'
+            'fn', 'mut', 'pub', 'trait', 'enum', 'echo', 'set'
         ]
 
         for keyword in keywords:
-            # Match whole words only
-            pattern = r'\b(' + re.escape(keyword) + r')\b'
+            # Match whole words only, not inside existing spans
+            pattern = r'\b(' + re.escape(keyword) + r')\b(?![^<]*>)'
             line = re.sub(pattern, r'<span class="syn-keyword">\1</span>', line, flags=re.IGNORECASE)
 
-        # Numbers
-        line = re.sub(r'\b(\d+\.?\d*)\b', r'<span class="syn-number">\1</span>', line)
+        # Numbers - simple numeric literals
+        line = re.sub(r'\b(\d+\.?\d*)\b(?![^<]*>)', r'<span class="syn-number">\1</span>', line)
 
         return line + '\n'
